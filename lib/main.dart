@@ -1,12 +1,17 @@
+// import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
-// import 'package:http/http.dart' as http;
-// import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:mapgpt2/firebase_options.dart';
 import 'map_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MaterialApp(home: LocationInputPage()));
 }
 
@@ -19,8 +24,8 @@ class _LocationInputPageState extends State<LocationInputPage> {
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
 // Define variables to store the coordinates
-  LatLng location1 = LatLng(7.046909, 80.120984);
-  LatLng location2 = LatLng(7.043037, 80.129966);
+  LatLng location1 = LatLng(7.0859203, 80.0335639);
+  LatLng location2 = LatLng(7.87533540646052, 80.65118935530958);
 
   @override
   void initState() {
@@ -99,7 +104,7 @@ class _LocationInputPageState extends State<LocationInputPage> {
                       toLatLng: toLatLng,
                       location1: location1, // Pass location1
                       location2: location2,
-                      currentLatLng: currentLatLng, // Pass location2
+                      currentLatLng: currentLatLng,
                     ),
                   ),
                 );

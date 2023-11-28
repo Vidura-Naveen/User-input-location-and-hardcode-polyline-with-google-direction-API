@@ -1,3 +1,4 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -8,7 +9,7 @@ class MapPage extends StatefulWidget {
   final LatLng toLatLng;
   final LatLng location1;
   final LatLng location2;
-  final LatLng currentLatLng; // Include current location
+  final LatLng currentLatLng;
 
   MapPage({
     required this.fromLatLng,
@@ -25,20 +26,62 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
-  late LatLng _lastKnownPosition; // To store the last known position
+  late LatLng _lastKnownPosition;
+  LatLng? _driverLocation;
+
+  final databaseReference = FirebaseDatabase.instance.ref();
 
   @override
   void initState() {
     super.initState();
+
     _lastKnownPosition = widget.currentLatLng;
     _markers
-        .add(Marker(markerId: MarkerId('from'), position: widget.fromLatLng));
-    _markers.add(Marker(markerId: MarkerId('to'), position: widget.toLatLng));
-    _markers.add(
-        Marker(markerId: MarkerId('location1'), position: widget.location1));
-    _markers.add(
-        Marker(markerId: MarkerId('location2'), position: widget.location2));
+      ..add(Marker(markerId: MarkerId('from'), position: widget.fromLatLng))
+      ..add(Marker(markerId: MarkerId('to'), position: widget.toLatLng))
+      ..add(Marker(markerId: MarkerId('location1'), position: widget.location1))
+      ..add(
+          Marker(markerId: MarkerId('location2'), position: widget.location2));
+
     _createPolylines();
+    // Listen for changes in the driver's location
+    databaseReference.child('location').onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        var data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        setState(() {
+          _driverLocation = LatLng(data['latitude'], data['longitude']);
+          // Update the markers set with the new driverLocation
+          _updateMarkers();
+        });
+      } else {
+        setState(() {
+          _driverLocation = null;
+          // Update the markers set without the driverLocation
+          _updateMarkers();
+        });
+      }
+    });
+  }
+
+  // Update the markers set based on current locations
+  void _updateMarkers() {
+    _markers.clear();
+    _markers
+      ..add(Marker(markerId: MarkerId('from'), position: widget.fromLatLng))
+      ..add(Marker(markerId: MarkerId('to'), position: widget.toLatLng))
+      ..add(Marker(markerId: MarkerId('location1'), position: widget.location1))
+      ..add(
+          Marker(markerId: MarkerId('location2'), position: widget.location2));
+
+    // Add driverLocation marker if it's not null
+    if (_driverLocation != null) {
+      _markers.add(Marker(
+        markerId: MarkerId('driverLocation'),
+        position: _driverLocation!,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        infoWindow: InfoWindow(title: 'Driver Location'),
+      ));
+    }
   }
 
   Future<void> _createPolylines() async {
@@ -53,7 +96,7 @@ class _MapPageState extends State<MapPage> {
         'mode=transit&'
         'transit_mode=bus&'
         'alternatives=true&'
-        'key=APIKEY'; // Replace YOUR_API_KEY with your actual API key
+        'key='; // Replace YOUR_API_KEY with your actual API key
 
     http.Response response = await http.get(Uri.parse(url));
     Map values = jsonDecode(response.body);
@@ -88,7 +131,7 @@ class _MapPageState extends State<MapPage> {
         'mode=transit&'
         'transit_mode=bus&'
         'alternatives=true&'
-        'key=APIKEY'; // Replace YOUR_API_KEY with your actual API key
+        'key='; // Replace YOUR_API_KEY with your actual API key
 
     http.Response response = await http.get(Uri.parse(url));
     Map values = jsonDecode(response.body);
